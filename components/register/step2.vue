@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useUserStore } from '~/store/UserStore';
+
 const emits = defineEmits(['next']);
 
 const code = ref('');
@@ -8,9 +10,36 @@ async function sendCode() {
         return;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const res = await useFetch(`http://localhost:8080/user/email/confirm/${code.value}`, {
+        method: "GET",
+    });
+    const data = res.data.value as { jwt: string };
+
+    console.log(data)
+    if (!data) {
+        return alert("Le code est invalide");
+    }
+
+    useUserStore().update(data.jwt);
 
     emits('next');
+}
+
+async function resendCode() {
+    const res = await useFetch(`http://localhost:8080/user/email/resend`, {
+        method: "GET",
+        headers: {
+            'x-access-token': useUserStore().JWT
+        }
+    });
+    const data = res.data.value as { jwt: string };
+
+    console.log(data)
+    if (!data) {
+        return alert("Impossible de renvoyer le code pour le moment");
+    }
+
+    useUserStore().update(data.jwt);
 }
 
 const isCodeValide = computed(() => {
@@ -36,8 +65,8 @@ const isCodeValide = computed(() => {
             <button class="btn bg-primary border-none text-white disabled:text-zinc-500" :disabled="!isCodeValide"
                 @click="sendCode">Valider</button>
         </div>
-        <p class=" text-zinc-400">Vous n'avez pas reçu de code ? <span
-                class="text-primary select-none cursor-pointer">Renvoyer le
+        <p class=" text-zinc-400">Vous n'avez pas reçu de code ? <span class="text-primary select-none cursor-pointer"
+                @click="resendCode">Renvoyer le
                 code</span></p>
     </div>
 </template>

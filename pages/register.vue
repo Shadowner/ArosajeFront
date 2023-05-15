@@ -1,16 +1,37 @@
 <script lang="ts" setup>
+import { useUserStore } from '~/store/UserStore';
+import { JWT_TYPE } from '~/types/JWT/JWT_TYPE';
+import { getCookie } from '../util/cookie';
 
 definePageMeta({
 })
 
-const mail = ref("");
-const password = ref("");
-const connecting = ref(false);
 
 const step = ref(0);
 
-async function next() {
+onMounted(() => {
+    const potentialCookie = getCookie('jwt');
+    if (potentialCookie) {
+        useUserStore().update(potentialCookie);
+        const type = useUserStore().JWTPayload.type
+        if (type === JWT_TYPE.USER) {
+            useRouter().push("/home");
+        } else if (type === JWT_TYPE.VALIDATING) {
+            step.value = 2;
+        } else if (type === JWT_TYPE.REGISTERING) {
+            step.value = 3;
+        }
+    }
+})
+
+
+
+function next() {
     step.value++;
+}
+
+function previous() {
+    step.value--;
 }
 </script>
 
@@ -18,7 +39,8 @@ async function next() {
     <div class="flex w-screen h-screen items-center justify-center space-x-52">
         <div class="flex justify-center items-center self-center z-10">
             <button>
-                <font-awesome-icon class="text-primary text-5xl m-3" v-show="step != 0" :icon="['fas', 'arrow-left']" />
+                <font-awesome-icon class="text-primary text-5xl m-3" v-show="step != 0" :icon="['fas', 'arrow-left']"
+                    @click="previous" />
             </button>
 
             <div class="p-12 bg-white  rounded-2xl">

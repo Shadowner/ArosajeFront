@@ -1,6 +1,8 @@
 <script lang="ts" setup>
-const emits = defineEmits(['next']);
+import { useUserStore } from '../../store/UserStore';
 
+const emits = defineEmits(['next']);
+const userStore = useUserStore();
 const firstname = ref('');
 const lastname = ref('');
 const email = ref('');
@@ -23,14 +25,27 @@ async function next() {
         lastname: lastname.value,
         email: email.value,
         password: password.value,
-        password_confirmation: password_confirmation.value,
-        day: day.value,
-        month: month.value,
-        year: year.value,
+        birthdate: new Date(`${day.value}/${month.value}/${year.value}`)
     };
 
-    //TODO: Send data to server
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    type ResType = { needConfirmation: boolean, message: string, jwt: string };
+
+    const res = await useFetch("http://localhost:8080/user/register", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+    });
+
+    const resData = res.data.value as ResType;
+    if (!resData.jwt) {
+        sending.value = false;
+        return alert(resData.message);
+    }
+
+    userStore.update(resData.jwt);
 
     emits('next');
 }

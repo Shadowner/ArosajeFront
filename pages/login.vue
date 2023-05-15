@@ -1,4 +1,8 @@
 <script lang="ts" setup>
+import { useUserStore } from '~/store/UserStore';
+import { JWT_TYPE } from '~/types/JWT/JWT_TYPE';
+import { getCookie } from '../util/cookie';
+
 definePageMeta({
     layout: false
 })
@@ -7,12 +11,45 @@ const mail = ref("");
 const password = ref("");
 const connecting = ref(false);
 
+onMounted(() => {
+    const potentialCookie = getCookie('jwt');
+    if (potentialCookie) {
+        useUserStore().update(potentialCookie);
+        const type = useUserStore().JWTPayload.type
+        console.log(type === JWT_TYPE.USER)
+        if (type === JWT_TYPE.USER) {
+            useRouter().push("/home");
+        } else {
+            useRouter().push("/register");
+        }
+    }
+})
+
+
 async function connect() {
     if (!mail.value || !password.value) return alert("Veuillez remplir tous les champs");
 
     connecting.value = true;
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const res = await useFetch("http://localhost:8080/user/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            email: mail.value,
+            password: password.value
+        })
+    });
+    const data = res.data.value as { jwt: string };
+
+    if (!data.jwt) {
+        connecting.value = false;
+        return alert("Une erreur est survenue lors de la connexion");
+    }
+
+    useUserStore().update(data.jwt);
+
     // const response = await fetch("http://localhost:3000/api/auth/login", {
     //     method: "POST",
     //     headers: {
@@ -54,9 +91,9 @@ async function connect() {
 
                 <div class="space-y-5">
                     <div class="space-y-2">
-                        <label class="text-sm font-medium text-base-300 tracking-wide">Email</label>
+                        <label class="text-sm  font-medium text-base-300 tracking-wide">Email</label>
                         <input v-model="mail" :disabled="connecting"
-                            class=" w-full text-base px-4 py-2 border  border-gray-300 rounded-lg focus:outline-none focus:border-green-400"
+                            class=" w-full px-4 py-2 border text-primary  border-gray-300 rounded-lg focus:outline-none focus:border-green-400"
                             type="" placeholder="mail@gmail.com">
                     </div>
                     <div class="space-y-2">
@@ -64,8 +101,8 @@ async function connect() {
                             Mot de passe
                         </label>
                         <input v-model="password" :disabled="connecting"
-                            class="w-full content-center text-base px-4 py-2 border  border-gray-300 rounded-lg focus:outline-none focus:border-green-400"
-                            type="" placeholder="Entrez votre mot de passe">
+                            class="w-full content-center px-4 py-2 border text-primary  border-gray-300 rounded-lg focus:outline-none focus:border-green-400"
+                            type="password" placeholder="Entrez votre mot de passe">
                     </div>
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
@@ -77,7 +114,6 @@ async function connect() {
                         </div>
                         <div class="text-sm">
                             <NuxtLink to="/password/lost">
-
                                 <a href="" class="text-primary hover:text-green-secondary">
                                     Mot de passe oublié ?
                                 </a>

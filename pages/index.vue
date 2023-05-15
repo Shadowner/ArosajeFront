@@ -10,5 +10,9 @@
         <NuxtLink to="register">
             <button class="btn">S'enregistrer</button>
         </NuxtLink>
+        <NuxtLink to="home">
+            <button class="btn">Direction l'home</button>
+        </NuxtLink>
+
     </div>
 </template>

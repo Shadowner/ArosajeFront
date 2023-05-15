@@ -1,0 +1,6 @@
+export enum JWT_TYPE {
+    USER,
+    REGISTERING,
+    VALIDATING,
+    PASSWORD_RESET,
+}

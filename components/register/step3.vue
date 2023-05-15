@@ -1,26 +1,46 @@
 <script lang="ts" setup>
+import { useUserStore } from '~/store/UserStore';
+
 
 const emits = defineEmits(["next"])
 
 type RoleType = {
     name: string,
-    description: string
+    description: string,
+    id?: number
 }
 
+const fetchRoles = await fetch("http://localhost:8080/role/public/all", {
+    method: "GET"
+});
+
+const serverRoles: RoleType[] = await fetchRoles.json() as RoleType[];
+if (!serverRoles) {
+    throw alert("Impossible de récupérer les rôles");
+}
 const roles: RoleType[] = [
     {
-        name: "Administrateur",
+        name: "ADMIN",
         description: "Administrateur du site, il peut tout faire"
     },
     {
-        name: "Botaniste",
+        name: "BOTANISTE",
         description: "Botaniste, il peut ajouter des plantes"
     },
     {
-        name: "Utilisateur",
+        name: "USER",
         description: "Utilisateur, il peut voir les plantes"
     }
 ]
+
+roles.map(x => {
+    const serverRole = serverRoles.find(y => y.name === x.name)
+    if (serverRole) {
+        x.id = serverRole.id
+    }
+});
+
+
 
 const selectedRoles: Ref<RoleType[]> = ref([])
 
@@ -37,7 +57,22 @@ async function sendRoles() {
         return
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const sendRoles = await useFetch('http://localhost:8080/user/register/finish', {
+        headers: {
+            "Content-Type": "application/json",
+            "x-access-token": useUserStore().JWT
+        },
+        method: "POST",
+        body: JSON.stringify({ roles: selectedRoles.value.map(x => x.id) })
+    });
+
+    const res = await sendRoles.data.value as { jwt: string }
+
+    if (!res || !res.jwt) {
+        return alert("Impossible de récupérer le token")
+    }
+
+    useUserStore().update(res.jwt)
 
     emits('next')
 }
@@ -56,7 +91,7 @@ async function sendRoles() {
                 v-for="role in roles" :key="role.name">
                 <div class="card-body">
                     <h2 class="card-title text-white">{{ role.name }}</h2>
-                    <p>{{ role.description }}</p>
+                    <p>{{ role.description }} ({{ role.id }})</p>
                     <div class="card-actions justify-end">
                         <input type="checkbox" class="toggle toggle-warning" :checked="selectedRoles.includes(role)" />
                     </div>
